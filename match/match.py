@@ -16,8 +16,22 @@ class Innings:
         self.overs_completed = 0
         self.batting_card = {}
         self.batters = self.get_batters(self.batting_team)['name'].to_list()
+        self.current_batters = {
+            self.batters[0]:{
+                'runs': 0,
+                'balls': 0,
+                'on_strike': True
+            },
+            self.batters[1]:{
+                'runs': 0,
+                'balls': 0,
+                'on_strike': False
+            }
+        }
+        self.current_batting_position = 1 # striker, non-striker
         self.bowling_card = {}
         self.opposition_bowlers = self.get_bowlers(self.bowling_team)['name'].to_list()
+        self.opposition_fielders = self.get_batters(self.bowling_team)['name'].to_list()
 
     
     @staticmethod
@@ -66,9 +80,37 @@ class Innings:
         return bowlers_df
        
 
-
-    def over(self, mode, runs_remaining, wickets_remaining):
+    def get_striker(self):
+        for batsman in self.current_batters:
+            if self.current_batters[batsman]['on_strike']:
+                return batsman
     
+
+    def get_nonstriker(self):
+        for batsman in self.current_batters:
+            if not self.current_batters[batsman]['on_strike']:
+                return batsman
+
+
+    def get_mode_dismissal(self, bowler):
+        possibilities = ['caught', 'lbw', 'bowled']
+        dismissal_mode = random.choice(possibilities)
+        if dismissal_mode == 'caught':
+            catcher = random.choice(self.opposition_fielders)
+            if catcher == bowler:
+                dismissal = f'c & b {bowler}'
+            else:
+                dismissal = f'c {catcher} b {bowler}'
+        elif dismissal_mode == 'lbw':
+            dismissal = f'lbw b {bowler}'
+        else:
+            dismissal = f'b {bowler}'
+        
+        return dismissal
+
+
+    def over(self, bowler, mode, runs_remaining, wickets_remaining):
+        
         # define possibilities for a ball bowled      
         possibilities = ['0', '1', '2', '3', '4', '6', 'W']
 
@@ -85,21 +127,97 @@ class Innings:
         balls_bowled = 0
 
         for _ in range(6):
+            current_striker = self.get_striker()
+            current_nonstriker = self.get_nonstriker()
+
             event = random.choices(possibilities, weights=weights, k=1)[0]
+
             balls_bowled += 1
+
             if event == 'W':
                 wickets += 1
+
+                self.current_batters[current_striker]['balls'] = self.current_batters[current_striker].get('balls', 0) + 1
+                self.batting_card[current_striker] = {
+                    'runs': self.current_batters[current_striker]['runs'],
+                    'balls': self.current_batters[current_striker]['balls'],
+                    'out': self.get_mode_dismissal(bowler)
+                }
+
+                self.current_batters.pop(current_striker)
+
+                if balls_bowled == 6:
+                    on_strike =False
+                    self.current_batters[current_nonstriker]['on_strike'] = True
+                else:
+                    on_strike = True
+                
+                
+                if self.current_batting_position < 10:
+                    self.current_batting_position += 1
+                    self.current_batters.update( { 
+                        self.batters[self.current_batting_position]:{
+                            'runs': 0,
+                            'balls': 0,
+                            'on_strike': on_strike
+                        }}
+                    )
+                    current_striker = self.get_striker()
+                    current_nonstriker = self.get_nonstriker()
+                    print(f'{current_striker} in with {current_nonstriker}')
+                else:
+                    self.batting_card.update(
+                        {
+                            f'{current_nonstriker}' : {
+                                'runs': self.current_batters[current_nonstriker]['runs'],
+                                'balls': self.current_batters[current_nonstriker]['balls'],
+                                'out': 'not out'
+                            }
+                        }
+                    )
+                    break    
             else:
                 runs += int(event)
+                try:
+                    self.current_batters[current_striker]['runs'] = self.current_batters[current_striker].get('runs', 0) + int(event)
+                    self.current_batters[current_striker]['balls'] = self.current_batters[current_striker].get('balls', 0) + 1
+                    
+                    # change strike incase of singles
+                    if int(event) % 2 == 0 and balls_bowled != 6:
+                        pass      
+                    else:
+                        self.current_batters[current_striker]['on_strike'] = False
+                        self.current_batters[current_nonstriker]['on_strike'] = True
 
-            # end innings if all wickets lost
-            # or target achieved    
-            if wickets >= wickets_remaining or runs >= runs_remaining:
-                break
+                    self.batting_card.update(
+                        {
+                            f'{current_striker}' : {
+                                'runs': self.current_batters[current_striker]['runs'],
+                                'balls': self.current_batters[current_striker]['balls'],
+                                'out': 'not out'
+                            },
+                            f'{current_nonstriker}' : {
+                                'runs': self.current_batters[current_nonstriker]['runs'],
+                                'balls': self.current_batters[current_nonstriker]['balls'],
+                                'out': 'not out'
+                            }
+                        }
+                    )
+
+                    # end innings if all wickets lost
+                    # or target achieved    
+                    if wickets >= wickets_remaining or runs >= runs_remaining:  
+                        print('innings over!')
+                        break
+
+
+                except KeyError as ke:
+                    print(f'key_error for {current_striker} / {current_nonstriker}')
+
 
         return runs, wickets, balls_bowled
-
     
+
     def play(self):
         # init previous bowler so than end's change
         previous_bowler = ''
@@ -126,9 +244,9 @@ class Innings:
                 bowlers_form = 'normal'
 
             # bowl the over
-            runs, wickets, balls_bowled = self.over(mode, target-self.total_runs, 10-self.total_wickets)
+            runs, wickets, balls_bowled = self.over(bowler, mode, target-self.total_runs, 10-self.total_wickets)
 
-            print(f'Over: {self.overs_completed + 1}, Bowler: {bowler}, {bowlers_form}, {runs}-{wickets}')
+            print(f'Over: {self.overs_completed + 1}, Bowler: {bowler}, {bowlers_form}, {runs}-{wickets} -{balls_bowled}')
             
             # scoring
             self.total_runs += runs
@@ -151,11 +269,17 @@ class Innings:
     
     def display_bowling_card(self):
         for bowler in self.bowling_card:    
-            print(f'{bowler} \t {self.bowling_card[bowler]["overs"]} - {self.bowling_card[bowler]["runs"]} - {self.bowling_card[bowler]["wickets"]}')
+            print(f'{bowler: <20} \t {self.bowling_card[bowler]["overs"]} - {self.bowling_card[bowler]["runs"]} - {self.bowling_card[bowler]["wickets"]}')
 
+
+    def display_batting_card(self):
+        for batsman in self.batting_card:    
+            print(f'{batsman: <20} \t\t {self.batting_card[batsman]["out"]: <30} \t\t {self.batting_card[batsman]["runs"]: <5} ({self.batting_card[batsman]["balls"]})')
 
             
 if __name__ == '__main__':
     innings = Innings('team1')
     innings.play()
+    innings.display_batting_card()
     innings.display_bowling_card()
+
