@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDE
+.idea/*
+.vscode/*
+
+# exclude vscode settings.json -- formatter
+!.vscode/settings.json
