@@ -300,7 +300,16 @@ class Innings:
 
 
 if __name__ == "__main__":
-    innings = Innings("team1")
-    innings.play()
-    innings.display_batting_card()
-    innings.display_bowling_card()
+    first_innings = Innings("team1")
+    first_innings.play()
+
+    target = first_innings.total_runs + 1
+
+    second_innings = Innings("team2", target=target)
+    second_innings.play()
+
+    first_innings.display_batting_card()
+    first_innings.display_bowling_card()
+
+    second_innings.display_batting_card()
+    second_innings.display_bowling_card()
