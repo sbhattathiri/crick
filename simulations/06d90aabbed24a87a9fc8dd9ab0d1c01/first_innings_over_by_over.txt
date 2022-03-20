@@ -1,0 +1,20 @@
+Over: 1, Bowler: Deepak Hooda,['6', '3', '1', '0', '4', '2'], 16/0
+Over: 2, Bowler: Mark Wood,['3', '0', '2', '6', '1', '1'], 13/0
+Over: 3, Bowler: Ravi Bishnoi,['4', '2', '2', '4', '2', '2'], 16/0
+Over: 4, Bowler: Marcus Stoinis,['3', '0', '4', '4', '0', 'Nb', '2'], 13/0
+Over: 5, Bowler: Ankit Rajpoot,['4', '2', 'W', '0', '1', '6'], 13/1
+Over: 6, Bowler: Ravi Bishnoi,['0', '0', '0', 'W', '0', '2'], 2/1
+Over: 7, Bowler: Mark Wood,['1', 'Wd', 'W', '2', '2', '2', 'W'], 7/2
+Over: 8, Bowler: Avesh Khan,['4', '6', 'W', 'Wd', '4', 'Nb', '3', 'Wd', '6'], 23/1
+Over: 9, Bowler: Marcus Stoinis,['3', '0', '0', 'Nb', '6', '2', '3'], 14/0
+Over: 10, Bowler: Avesh Khan,['4', '6', '2', '3', '3', '1'], 19/0
+Over: 11, Bowler: Deepak Hooda,['6', '2', '3', '6', '2', 'Wd', '6'], 25/0
+Over: 12, Bowler: Shahbaz Nadeem,['6', '6', '1', 'Wd', 'Nb', '1', '3', '6'], 23/0
+Over: 13, Bowler: Marcus Stoinis,['2', '1', 'W', 'W', '4', '0'], 7/2
+Over: 14, Bowler: Avesh Khan,['6', '0', '2', '0', 'Nb', '4', '6'], 18/0
+Over: 15, Bowler: Ravi Bishnoi,['6', '2', '6', '2', '2', 'Wd', '1'], 19/0
+Over: 16, Bowler: Marcus Stoinis,['4', '2', '0', 'W', '2', '0'], 8/1
+Over: 17, Bowler: Shahbaz Nadeem,['3', '6', '6', '3', 'Nb', '3', 'Wd', '2'], 23/0
+Over: 18, Bowler: Mark Wood,['Nb', '2', '6', '2', '6', '2', '6'], 24/0
+Over: 19, Bowler: Deepak Hooda,['3', '6', '1', 'Wd', '6', '3', '2'], 21/0
+Over: 20, Bowler: Ravi Bishnoi,['W', '4', 'W'], 4/2
