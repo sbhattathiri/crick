@@ -7,7 +7,7 @@ import pandas as pd
 from batting import Batter, BattingPair
 
 
-class Innings:
+class Match:
     @staticmethod
     def create_simulations_dump_folder(match_id):
         curr_dir = Path.cwd()
@@ -15,6 +15,63 @@ class Innings:
         simulations_dump_folder_path = Path(simulations_dump_folder)
         simulations_dump_folder_path.mkdir(parents=True)
 
+    @staticmethod
+    def display(l):
+        for entry in l:
+            print(f"{entry}")
+
+    @staticmethod
+    def display_bowling_card(bowling_card):
+        for bowler in bowling_card:
+            print(
+                f'{bowler: <20} \t {bowling_card[bowler]["overs"]} - {bowling_card[bowler]["runs"]} - {bowling_card[bowler]["wickets"]}'
+            )
+
+    @staticmethod
+    def display_batting_card(batting_card):
+        for batsman in batting_card:
+            balls_faced = (
+                f'({batting_card[batsman]["balls"]})'
+                if batting_card[batsman]["balls"]
+                else ""
+            )
+            print(
+                f'{batsman: <20} \t\t {batting_card[batsman]["dismissal"]: <40} \t\t {batting_card[batsman]["runs"]: <3} {balls_faced}'
+            )
+
+    def __init__(self, home_team, opposition_team):
+        self.home_team = home_team
+        self.opposition_team = opposition_team
+        self.match_id = str(uuid.uuid4()).replace("-", "")
+
+        # create folder to dump simulation data
+        Match.create_simulations_dump_folder(self.match_id)
+
+    def play(self):
+        first_innings = Innings(
+            batting_team=self.home_team, bowling_team=self.opposition_team
+        )
+        over_by_over, batting_card, bowling_card, fall_of_wicket = first_innings.play()
+        Match.display(over_by_over)
+        Match.display_batting_card(batting_card=batting_card)
+        Match.display_bowling_card(bowling_card=bowling_card)
+        Match.display(fall_of_wicket)
+
+        target = first_innings.total_runs + 1
+
+        second_innings = Innings(
+            batting_team=self.opposition_team,
+            bowling_team=self.home_team,
+            target=target,
+        )
+        over_by_over, batting_card, bowling_card, fall_of_wicket = second_innings.play()
+        Match.display(over_by_over)
+        Match.display_batting_card(batting_card=batting_card)
+        Match.display_bowling_card(bowling_card=bowling_card)
+        Match.display(fall_of_wicket)
+
+
+class Innings:
     @staticmethod
     def dump_partnership_data():
         pass
@@ -39,7 +96,6 @@ class Innings:
             return (30, 40, 40, 30, 25, 15, 15, 5, 5)
 
     def __init__(self, batting_team, bowling_team, target=None, max_overs=20):
-        self.match_id = str(uuid.uuid4()).replace("-", "")
         self.batting_team = batting_team
         self.bowling_team = bowling_team
         self.target = target
@@ -137,7 +193,7 @@ class Innings:
         wickets = 0
 
         ball_by_ball = []
-
+        fow = []
         while balls_bowled < 6:
             event = random.choices(possibilities, weights=_weights, k=1)[0]
             ball_by_ball.append(event)
@@ -155,6 +211,10 @@ class Innings:
                 balls_bowled -= 1
             elif event == "W":
                 wickets += 1
+                self.total_wickets += 1
+                fow.append(
+                    f"{self.current_batters.striker.name: <20} {self.total_runs}/{self.total_wickets}"
+                )
                 self.current_batters.striker.dismissed()
                 self.update_batting_card(
                     name=self.current_batters.striker.name,
@@ -170,9 +230,6 @@ class Innings:
                     self.current_batters.striker = Batter(
                         self.batters[self.current_batting_position]
                     )
-                    print(
-                        f"{self.current_batters.striker.name} in with {self.current_batters.non_striker.name}"
-                    )
                 else:
                     self.update_batting_card(
                         name=self.current_batters.non_striker.name,
@@ -187,6 +244,7 @@ class Innings:
 
             else:
                 runs += int(event)
+                self.total_runs += int(event)
                 try:
                     self.current_batters.striker.score(int(event))
 
@@ -216,12 +274,13 @@ class Innings:
                     print(e)
                     raise
 
-        return balls_bowled, runs, wickets, ball_by_ball
+        return balls_bowled, runs, wickets, ball_by_ball, fow
 
     def play(self):
+        fall_of_wicket = []
+        over_by_over = []
         # init previous bowler so than end's change
         previous_bowler = ""
-
         # assign target to chase or 20*36 if first inn
         target = self.target if self.target else 720
 
@@ -240,25 +299,17 @@ class Innings:
 
             # get bowler's form
             mode = Innings.isChadOrVirgin()
-            if mode == 1:
-                bowlers_form = "chad"
-            elif mode == -1:
-                bowlers_form = "virgin"
-            else:
-                bowlers_form = "normal"
 
             # bowl the over
-            balls_bowled, runs, wickets, ball_by_ball = self.over(
+            balls_bowled, runs, wickets, ball_by_ball, fow = self.over(
                 bowler, mode, target - self.total_runs, 10 - self.total_wickets
             )
-
-            print(
-                f"Over: {self.overs_completed + 1}, Bowler: {bowler}, {bowlers_form}, {ball_by_ball}, {runs}-{wickets}"
+            fall_of_wicket += fow
+            over_by_over.append(
+                f"Over: {self.overs_completed + 1}, Bowler: {bowler},{ball_by_ball}, {runs}/{wickets}"
             )
 
             # scoring
-            self.total_runs += runs
-            self.total_wickets += wickets
             self.overs_completed = (
                 self.overs_completed + 1
                 if balls_bowled == 6
@@ -289,37 +340,9 @@ class Innings:
             dismissal="",
         )
 
-    def display_bowling_card(self):
-        for bowler in self.bowling_card:
-            print(
-                f'{bowler: <20} \t {self.bowling_card[bowler]["overs"]} - {self.bowling_card[bowler]["runs"]} - {self.bowling_card[bowler]["wickets"]}'
-            )
-
-    def display_batting_card(self):
-        for batsman in self.batting_card:
-            balls_faced = (
-                f'({self.batting_card[batsman]["balls"]})'
-                if self.batting_card[batsman]["balls"]
-                else ""
-            )
-            print(
-                f'{batsman: <20} \t\t {self.batting_card[batsman]["dismissal"]: <40} \t\t {self.batting_card[batsman]["runs"]: <3} {balls_faced}'
-            )
+        return over_by_over, self.batting_card, self.bowling_card, fall_of_wicket
 
 
 if __name__ == "__main__":
-    first_innings = Innings(batting_team="team1", bowling_team="team2")
-    first_innings.play()
-
-    target = first_innings.total_runs + 1
-
-    second_innings = Innings(batting_team="team2", bowling_team="team1", target=target)
-    second_innings.play()
-
-    first_innings.display_batting_card()
-    first_innings.display_bowling_card()
-
-    second_innings.display_batting_card()
-    second_innings.display_bowling_card()
-
-    Innings.create_simulations_dump_folder("1")
+    match = Match(home_team="team1", opposition_team="team2")
+    match.play()
