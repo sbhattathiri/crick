@@ -1,0 +1,6 @@
+# data wrangling
+pandas==1.4.1
+
+# lint
+black
+
