@@ -125,7 +125,7 @@ class Innings:
                 self.no_balls += 1
                 self.extras += 1
                 self.total_runs += 1
-                self.current_batters.striker.dot_ball()
+                self.current_batters.striker.score(0)
 
                 balls_bowled -= 1
                 runs += 1
@@ -136,7 +136,7 @@ class Innings:
 
                 fow.append(f"{self.current_batters.striker.name: <20} {self.total_runs}/{self.total_wickets}")
 
-                self.current_batters.striker.dot_ball()
+                self.current_batters.striker.score(0)
 
                 self.update_batting_card(
                     name=self.current_batters.striker.name,
@@ -244,7 +244,7 @@ class Innings:
         self.update_batting_card(
             name="extras",
             runs=self.extras,
-            balls_faced=None,
+            balls_faced=(f"W : {self.wides}, Nb : {self.no_balls}"),
             dismissal="",
         )
 
