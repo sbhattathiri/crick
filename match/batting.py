@@ -21,7 +21,7 @@ class Batter:
         self._runs += runs
         self._balls_faced += 1
 
-    def dismissed(self):
+    def dot_ball(self):
         self._balls_faced += 1
 
 
