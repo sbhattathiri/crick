@@ -37,20 +37,25 @@ class Innings:
         else:
             return 0
 
-    @staticmethod
-    def weights(mode):
-        if mode == 1:
-            return (60, 50, 30, 0, 5, 0, 40, 0, 0)
-        elif mode == -1:
-            return (0, 10, 30, 20, 40, 40, 2, 20, 20)
-        else:
-            return (30, 40, 40, 30, 25, 15, 15, 5, 5)
-
-    def __init__(self, batting_team, bowling_team, target=None, max_overs=20):
+    def __init__(
+        self,
+        batting_team,
+        bowling_team,
+        target=None,
+        overs_per_innings=20,
+        max_overs_per_bowler=4,
+        weights={
+            1: (60, 50, 30, 0, 5, 0, 40, 0, 0),
+            -1: (0, 10, 30, 20, 40, 40, 2, 20, 20),
+            0: (30, 40, 40, 30, 25, 15, 15, 5, 5),
+        },
+    ):
         self.batting_team = batting_team
         self.bowling_team = bowling_team
         self.target = target
-        self.max_overs = max_overs
+        self.overs_per_innings = overs_per_innings
+        self.max_overs_per_bowler = max_overs_per_bowler
+        self.weights = weights
         self.extras = 0
         self.wides = 0
         self.no_balls = 0
@@ -100,7 +105,7 @@ class Innings:
         possibilities = ["0", "1", "2", "3", "4", "6", "W", "Wd", "Nb"]
 
         # adjust weights depending on bowler's form
-        _weights = Innings.weights(mode)
+        _weights = self.weights[mode]
 
         balls_bowled = 0
         runs = 0
@@ -134,7 +139,7 @@ class Innings:
 
                 wickets += 1
 
-                fow.append(f"{self.current_batters.striker.name: <20} {self.total_runs}/{self.total_wickets}")
+                fow.append(f"{self.current_batters.striker.name: <30} {self.total_runs}/{self.total_wickets}")
 
                 self.current_batters.striker.score(0)
 
@@ -197,16 +202,16 @@ class Innings:
         fall_of_wicket = []
         over_by_over = []
         previous_bowler = ""
-        # assign target to chase or 20*36 if first inn
-        target = self.target if self.target else 720
+        # assign target to chase or 450*36 if first inn
+        target = self.target if self.target else 16200
 
-        while self.overs_completed < 20 and self.total_wickets < 10 and self.total_runs <= target:
+        while self.overs_completed < self.overs_per_innings and self.total_wickets < 10 and self.total_runs <= target:
             # choose a bowler
             while True:
                 bowler = random.choice(self.bowlers)
                 if bowler != previous_bowler:
                     bowler_stats = self.bowling_card.get(bowler, {})
-                    if bowler_stats.get("overs", 0) < 4:
+                    if bowler_stats.get("overs", 0) < self.max_overs_per_bowler:
                         break
 
             # get bowler's form
