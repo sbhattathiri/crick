@@ -134,3 +134,6 @@ dmypy.json
 
 # exclude vscode settings.json -- formatter
 !.vscode/settings.json
+
+# simulations
+**/simulations
