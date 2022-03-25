@@ -4,12 +4,12 @@ An attempt at a simple _hobby-project_ in hope to improve my python-skills.
 
 ### Wishlist
 
-- using industry best-practices with python dev (venv, black, pylint, mypy, oop concepts, unit-tests etc) while building a cricket match simulator
-- build GUI for registering teams, display scoresheets
-- build CLI for registering teams and other admin stuffs
-- build API for getting match stats
+- using industry best-practices with python dev (venv, black, pylint, mypy, unit-tests (pytest), documentation (sphinx) etc) while building a cricket match simulator
+- build GUI for registering teams, display scoresheets (tkinter)
+- build CLI for registering teams and other admin stuffs (typer)
+- build API for getting match stats (fastapi / flask)
 - web-scraping for getting a realistic dataset
-- build a data pipeline for processing match scorecards
+- build a data pipeline for processing match scorecards (airflow)
 - build a dashboard out of processed data
  
 
