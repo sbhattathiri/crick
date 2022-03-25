@@ -1,6 +1,10 @@
-# crick
+# CRICK 
 
-An attempt at a hobby project.
+Cricket :cricket_game:
+
+An attempt at a simple _hobby-project_.
+
+### Learning Objectives:
 
 aim
     - learn how to simulate cricket matches (that we see in r/cricket)
