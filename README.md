@@ -19,7 +19,7 @@ An attempt at a simple _hobby-project_ in hope to improve my python-skills.
   ```
   python -m match.match -f ODI   # -f options can be one of [T20, ODI, Test]
   ```
-  This will play-out a simulation and prints the match scorecards - batting, bowling, FOW and over-by-over cards to console and also saves them as a file under `/simulations`
+  This will play-out a simulation and prints the match scorecards - _batting, bowling, FOW_ and _over-by-over_ cards to console and also saves them as a file under `/simulations`
   
   batting card
   ![sample_batting_sheet](https://user-images.githubusercontent.com/23091121/160048144-9e060a46-b1a5-4a0f-a563-b32763367809.png)
