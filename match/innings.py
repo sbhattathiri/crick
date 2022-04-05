@@ -2,7 +2,7 @@ import random
 
 import pandas as pd
 
-from batting import Batter, BattingPair
+from match.batting import Batter, BattingPair
 
 
 class Innings:
@@ -16,6 +16,9 @@ class Innings:
         # sanitize
         columns = {col: col.strip() for col in team_df.columns}
         team_df = team_df.rename(columns=columns)
+
+        # for ignoring the SettingWithCopyWarning in lines 25, 29
+        pd.options.mode.chained_assignment = None
 
         if role == "bowlers":
             bowlers_df = team_df[(team_df["role"] == "bowler") | (team_df["role"] == "all-rounder")]

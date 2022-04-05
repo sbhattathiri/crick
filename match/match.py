@@ -2,7 +2,7 @@ import argparse
 import uuid
 from pathlib import Path
 
-from innings import Innings
+from match.innings import Innings
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument(
