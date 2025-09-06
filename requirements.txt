@@ -1,6 +1,6 @@
 # data wrangling
-pandas==1.4.1
+pandas
 
-# lint
-black
+# notebook
+marimo
 
