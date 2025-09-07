@@ -4,3 +4,7 @@ pandas
 # notebook
 marimo
 
+# ai
+openai
+
+

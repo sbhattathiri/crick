@@ -6,9 +6,88 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import marimo as mo
+    import json
     import random
+    import marimo as mo
 
+    from openai import OpenAI
+    return OpenAI, json, mo, random
+
+
+@app.cell
+def _(OpenAI):
+    client = OpenAI(
+        base_url="http://localhost:12434/engines/v1",
+        api_key="sk-no-key-required",
+    )
+    return (client,)
+
+
+@app.cell
+def _(client):
+    def generate_commentary(match_stats):
+        try:
+            completion = client.chat.completions.create(
+                model="ai/gemma3",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": """
+                                You are a cricket commentary generator.
+
+                                You will be given a match stats dictionary with the following keys:
+                            
+                                batting_team (str): name of the team that is batting
+                                fielding_team (str): name of the team that is fielding
+                                batter (str): Current batter’s name
+                                partner (str): Non-striker’s name
+                                batter_score (int): Runs scored by current batter
+                                partner_score (int): Runs scored by partner
+                                team_score (int): Total team runs
+                                wickets (int): Total wickets down
+                                overs_remaining (int): Overs left in the innings
+                                runs_prev_over (int): Runs scored in the previous over
+                                wickets_prev_over (int): Wickets fallen in the previous over
+
+                                Your task:
+                                Generate exactly 3 lines of natural-sounding cricket commentary.
+                                Commentary should be dynamic, engaging, and contextual, not robotic.
+                                Blend in match situation insights, e.g., runs/wickets in last over, strike rotation, pressure, or momentum.
+                                Each line should add a new perspective.
+                                Use a tone similar to live commentators—lively, descriptive, slightly dramatic if relevant.
+
+                                In cricket scoring 50 runs, 100 runs etc are personal milestones.Likewise taking 5 wickets is a milestone.
+                                If the bowler is nearing 5 wickets or batsman is nearing 50 or 100 runs make sure to include that in the                               comment 
+
+                                NOTE: GIVE JUST THE COMMENTARY LINES. AVOID WRITING 
+                                "Here's a commentary generated for the provided match stats:" etc.
+                                """,
+                            }
+                        ],
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text", 
+                                "text": match_stats
+                            },
+                        ],
+                    },
+                ],
+            )
+
+            return completion.choices[0].message.content
+        except:
+            return "No comments!!!"
+    return (generate_commentary,)
+
+
+@app.cell
+def _():
     EVENTS = [0, 1, 2, 3, 4, 5, 6, "W", "WD", "NB"]
     WEIGHTS = [25, 25, 12, 8, 15, 1, 9, 2, 1, 2]
 
@@ -21,36 +100,20 @@ def _():
         "run out": "run out [{fielder1}/{fielder2}]",
     }
     DISMISSAL_MODE_WEIGHTS = [20, 25, 35, 8, 6, 6]
+    return DISMISSAL_MODE_WEIGHTS, DISMISSAL_TEMPLATES, EVENTS, WEIGHTS
 
-    POSITIVE_BATTING_COMMENTS = [
-        "Batters maintaining very good run rate.\n",
-        "Amazing striking from the batters.\n",
-        "Bowlers taking a serious thumping.\n"
-    ]
 
-    NEUTRAL_BATTING_COMMENTS = [
-        "Batters playing it safe.\n"
-    ]
-
-    NEGATIVE_BATTING_COMMENTS = [
-        "Batters struggling.\n",
-        "Batters living out their luck.\n",
-    ]
-
-    POSITIVE_BOWLING_COMMENTS = [
-        "Last over was fire.\n",
-        "Terrific bowling.\n",
-    ]
-
-    NEUTRAL_BOWLING_COMMENTS = [
-        "A rather uneventful over.\n"
-    ]
-
-    NEGATIVE_BOWLING_COMMENTS = [
-        "Poor bowling there.\n",
-        "Bowlers struggling to hit the right areas.\n",
-    ]
-
+@app.cell
+def _(
+    DISMISSAL_MODE_WEIGHTS,
+    DISMISSAL_TEMPLATES,
+    EVENTS,
+    WEIGHTS,
+    generate_commentary,
+    json,
+    mo,
+    random,
+):
 
     class Innings:
         def __init__(self, batters, bowlers, fielders, keeper, max_overs):
@@ -98,7 +161,6 @@ def _():
                 for bowler in bowlers
             }
 
-            # for generating commentary
             self.event_comment = ""
             self.overs_remaining = max_overs
             self.last_over_stats = {
@@ -133,6 +195,7 @@ def _():
             if not options:
                 part_timer = random.choice(self.fielders)
                 options.append(part_timer)
+                self.bowlers.append(part_timer)
                 self.bowling_scorecard[part_timer] = {
                     "balls": 0,
                     "overs": 0,
@@ -143,7 +206,7 @@ def _():
                     "no-balls": 0,
                 }
                 print(
-                    f"captain running out of options, bringing in {part_timer}"
+                    f"Captain running out of options, bringing in {part_timer}"
                 )
 
             return random.choice(options)
@@ -165,53 +228,29 @@ def _():
                 keeper=self.keeper,
             )
 
+    
         def commentary(self):
-            commentary_line = ""
-            runs_in_previous_over = self.last_over_stats["runs"]
-            wickets_in_previous_over = self.last_over_stats["wickets"]
+            match_stats = {
+                "batting_team": "India XI",
+                "fielding_team": "England Lions",
+                "batter": self.batters[self.get_striker()],
+                "partner": self.batters[self.get_partner()],
+                "batter_score": self.batting_scorecard.get(self.batters[self.get_striker()])["runs"] ,
+                "partner_score": self.batting_scorecard.get(self.batters[self.get_partner()])["runs"] ,
+                "team_score": self.total_runs,
+                "wickets": self.total_wickets,
+                "overs_remaining": self.overs_remaining,
+                "runs_prev_over": self.last_over_stats["runs"],
+                "wickets_prev_over": self.last_over_stats["wickets"]
+            }
 
-            striker_near_50 = 0 < 50 - self.batting_scorecard.get(self.batters[self.get_striker()])["runs"] < 10
-            partner_near_50 = 0 < 50 - self.batting_scorecard.get(self.batters[self.get_partner()])["runs"] < 10
-            striker_near_100 = 0 < 100 - self.batting_scorecard.get(self.batters[self.get_striker()])["runs"]  < 10
-            partner_near_100 = 0 < 100 - self.batting_scorecard.get(self.batters[self.get_partner()])["runs"]  < 10
-            if striker_near_50 and partner_near_50:
-                commentary_line += "Both batters nearing fifty \n"
-            elif striker_near_100 and partner_near_100:
-                commentary_line += "Both batters nearing hundred \n"
-            elif striker_near_100:
-                commentary_line += f"{self.batters[self.get_striker()]} nearing hundred \n"
-            elif partner_near_100:
-                commentary_line += f"{self.batters[self.get_partner()]} nearing hundred \n"
-            elif striker_near_50:
-                commentary_line += f"{self.batters[self.get_striker()]} nearing fifty \n"
-            elif partner_near_50:
-                commentary_line += f"{self.batters[self.get_partner()]} nearing fifty \n"
-        
-            if runs_in_previous_over >= 12:
-                commentary_line += " " + random.choice(POSITIVE_BATTING_COMMENTS)
-                if wickets_in_previous_over == 0:
-                    commentary_line += " " + random.choice(NEGATIVE_BOWLING_COMMENTS)
-            elif 6 < runs_in_previous_over < 12:
-                commentary_line += " " + random.choice(NEUTRAL_BATTING_COMMENTS)
-                if wickets_in_previous_over >= 3:
-                    commentary_line += " " + random.choice(POSITIVE_BOWLING_COMMENTS)
-            else:
-                commentary_line += " " + random.choice(NEGATIVE_BATTING_COMMENTS)
-                if wickets_in_previous_over >= 1:
-                    commentary_line += " " + random.choice(POSITIVE_BOWLING_COMMENTS)
-                else:
-                    commentary_line += " " + random.choice(NEUTRAL_BOWLING_COMMENTS)
-
-            if self.overs_remaining == 2:
-                commentary_line += f"{self.overs_remaining} overs remain - can they get to {self.total_runs + 30}? \n"
-            elif self.overs_remaining == 1:
-                commentary_line += f"last over of the innings - can they finish it off in style? \n"
+            comment = generate_commentary(json.dumps(match_stats))
 
             print("")
-            print(commentary_line)
+            print(comment)
             print("")
 
-            
+
         def event(self):
             return random.choices(EVENTS, weights=WEIGHTS)[0]
 
@@ -228,7 +267,7 @@ def _():
                     "balls": self.batting_scorecard.get(batter)["balls"],
                     "4s": self.batting_scorecard.get(batter)["fours"],   
                     "6s": self.batting_scorecard.get(batter)["sixes"],
-                
+
                 }
                 for batter in self.batters if self.batting_scorecard.get(batter)["balls"]
             ] + [
@@ -251,50 +290,6 @@ def _():
             ]
             return mo.ui.table(data=formatted_scorecard, pagination=True, page_size=15)
 
-        # def display_batting_scorecard(self):
-        #     formatted_scorecard = [
-        #         {
-        #             "player": batter,
-        #             "dismissal": (
-        #                 self.batting_scorecard.get(batter)["dismissal"]
-        #                 if self.batting_scorecard.get(batter)["dismissed"]
-        #                 else "NOT OUT"
-        #                 if self.batting_scorecard.get(batter)["balls"]
-        #                 else ""
-        #             ),
-        #             "runs": self.batting_scorecard.get(batter)["runs"]
-        #             if self.batting_scorecard.get(batter)["balls"]
-        #             else "",
-        #             "balls": self.batting_scorecard.get(batter)["balls"]
-        #             if self.batting_scorecard.get(batter)["balls"]
-        #             else "",
-        #             "4s": self.batting_scorecard.get(batter)["fours"]
-        #             if self.batting_scorecard.get(batter)["balls"]
-        #             else "",
-        #             "6s": self.batting_scorecard.get(batter)["sixes"]
-        #             if self.batting_scorecard.get(batter)["balls"]
-        #             else "",
-        #         }
-        #         for batter in self.batters
-        #     ] + [
-        #         {
-        #             "player": "EXTRAS",
-        #             "dismissal": "",
-        #             "runs": self.extras,
-        #             "balls": "",
-        #             "4s": "",
-        #             "6s": "",
-        #         },
-        #         {
-        #             "player": "TOTAL",
-        #             "dismissal": "",
-        #             "runs": f"{self.total_runs}/{self.total_wickets}",
-        #             "balls": "",
-        #             "4s": "",
-        #             "6s": "",
-        #         },
-        #     ]
-        #     return mo.ui.table(data=formatted_scorecard, pagination=True, page_size=15)
 
         def display_bowling_scorecard(self):
             formatted_scorecard = [
@@ -307,39 +302,9 @@ def _():
                     "wd": self.bowling_scorecard.get(bowler)["wides"],
                     "nb": self.bowling_scorecard.get(bowler)["no-balls"],
                 }
-                for bowler in self.bowlers if self.bowling_scorecard.get(bowler)["balls"]
+                for bowler in self.bowlers if self.bowling_scorecard.get(bowler).get("balls")
             ]
             return mo.ui.table(data=formatted_scorecard, pagination=True)
-
-        # def display_bowling_scorecard(self):
-        #     formatted_scorecard = [
-        #         {
-        #             "player": bowler,
-        #             "overs": f"{self.bowling_scorecard.get(bowler)['balls'] // 6}.{self.bowling_scorecard.get(bowler)['balls'] % 6}"
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "balls": f"{self.bowling_scorecard.get(bowler)['balls']}"
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "dots": self.bowling_scorecard.get(bowler)["dots"]
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "runs": self.bowling_scorecard.get(bowler)["runs"]
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "wickets": self.bowling_scorecard.get(bowler)["wickets"]
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "wd": self.bowling_scorecard.get(bowler)["wides"]
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #             "nb": self.bowling_scorecard.get(bowler)["no-balls"]
-        #             if self.bowling_scorecard.get(bowler)["balls"]
-        #             else "",
-        #         }
-        #         for bowler in self.bowlers 
-        #     ]
-        #     return mo.ui.table(data=formatted_scorecard, pagination=True)
 
 
         def over(self, over_index, previous_bowler):
@@ -406,7 +371,7 @@ def _():
 
                     self.event_comment = f"{event} RUNS"
 
-                
+
 
                 print(
                     f"{over_index}.{ball_index} "
@@ -415,11 +380,11 @@ def _():
                 )
                 if event not in ["WD", "NB"]:
                     ball_index += 1 
-            
-            
+
+
             return current_bowler, runs, wickets
 
-            
+
 
         def innings(self):
             over_index = 0
@@ -429,17 +394,17 @@ def _():
             while over_index < self.max_overs:
                 if self.all_out:
                     break
-                
+
                 bowler, runs, wickets = self.over(over_index, previous_bowler)
                 self.last_over_stats["runs"] = runs
                 self.last_over_stats["wickets"] = wickets
-            
+
                 self.bowling_scorecard.get(bowler)["overs"] += 1
                 previous_bowler = bowler
 
                 over_index += 1
                 self.overs_remaining -= 1
-            
+
                 self.swap_striker()
 
                 self.commentary()
@@ -510,11 +475,6 @@ def _(inn):
 @app.cell
 def _(inn):
     inn.display_bowling_scorecard()
-    return
-
-
-@app.cell
-def _():
     return
 
 
